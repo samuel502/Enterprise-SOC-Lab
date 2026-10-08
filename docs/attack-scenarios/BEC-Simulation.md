@@ -4,14 +4,13 @@
 Business Email Compromise (BEC) attack simulation demonstrating credential harvesting through Microsoft 365 phishing.
 
 ## Attack Chain
-1. **Reconnaissance**: [Target identification and information gathering]
-2. **Lure Development**: [Phishing email creation]
-3. **Infrastructure Setup**: [Web server and credential capture]
-4. **Delivery**: [Email sending method]
-5. **Exploitation**: [Victim interaction with phishing page]
-6. **Credential Harvesting**: [Capture method]
-7. **Post-Exploitation**: [Activities after obtaining credentials]
-
+1. **Reconnaissance**: Target identification and information gathering
+2. **Lure Development**: Invoice-based lure documents
+3. **Infrastructure Setup**: Apache2 web server with credential capture
+4. **Delivery**: Direct access via browser (for testing)
+5. **Exploitation**: Victim interaction with phishing page ✅
+6. **Credential Harvesting**: HTTP POST to login.php ✅
+7. **Post-Exploitation**: [To be determined]
 ## Phishing Infrastructure
 - **Phishing Page Location**: `/var/www/html/phishing.html`
   - ![Phishing Page](../screenshots/phishing-page-full.png)
