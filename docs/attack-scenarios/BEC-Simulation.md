@@ -14,9 +14,12 @@ Business Email Compromise (BEC) attack simulation demonstrating credential harve
 
 ## Phishing Infrastructure
 - **Phishing Page Location**: `/var/www/html/phishing.html`
+  - ![Phishing Page](../screenshots/phishing-page-full.png)
 - **Web Server**: Apache2 on Kali Linux
-- **Credential Capture**: HTTP POST to `login.php`
-- **Lure Documents**: Invoice files in `/soc-lab/phishing/lure/`
+- **Credential Capture**: HTTP POST to login.php
+  - ![Capture Script](../screenshots/capture-script.png)
+- **Credentials Storage**: stolen.txt file (currently empty, will store captured credentials)
+  - ![Credentials File](../screenshots/credentials-file.png)
 
 ## Phishing Page Analysis
 - **Target**: Microsoft 365 login
