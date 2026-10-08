@@ -45,3 +45,11 @@ Business Email Compromise (BEC) attack simulation demonstrating credential harve
 - **Email Filtering**: [SPF, DKIM, DMARC validation]
 - **Endpoint Protection**: [Antivirus/EDR detection]
 - **Network Monitoring**: [Traffic analysis for suspicious patterns]
+## Test Results
+- **Credential Capture**: Successfully captured test credentials
+  - ![Captured Credentials](../screenshots/captured-credentials.png)
+- **Victim Access**: Windows VM successfully accessed phishing page
+  - ![Victim Access](../screenshots/victim-access.png)
+- **Redirect**: Successfully redirects to Microsoft after submission
+  - ![Microsoft Redirect](../screenshots/microsoft-redirect.png)
+- **Attack Flow**: Complete end-to-end attack chain working correctly
