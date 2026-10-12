@@ -93,19 +93,6 @@ $guid = (Get-NetAdapter -Name 'Ethernet0').InterfaceGuid
 
 Change `Ethernet0` if your adapter has another name. The `\Device\NPF_` prefix is required for the Npcap capture device. Start Suricata only after creating and validating the custom rule in the following sections.
 
-### Actual adapter details from this lab
-
-For reproducibility, the original endpoint used:
-
-```text
-Adapter name: Ethernet0
-Description: Intel(R) 82574L Gigabit Network Connection
-GUID: {39BD0497-33C8-4319-ADD9-1A2C78BC53E6}
-Npcap device: \Device\NPF_{39BD0497-33C8-4319-ADD9-1A2C78BC53E6}
-```
-
-**These are recorded observations, not universal values.** Readers should determine their own adapter and GUID using the commands above.
-
 ## 3. Create the HTTP Credential-Submission Detection Rule
 
 Create the rules directory, if it does not already exist:
@@ -319,7 +306,7 @@ This confirmed network-connection telemetry but did not, by itself, indicate cre
 - The lab used dummy credentials only; do not publish real credentials or collected password values.
 - HTTPS request bodies are encrypted and cannot be inspected through this rule without additional authorized decryption infrastructure.
 - Suricata currently detects and logs the traffic but does not block it.
-- The capture interface must be selected per system; the documented GUID is specific to this VM.
+- The capture interface must be selected individually for each system. The provided PowerShell commands automatically retrieve the appropriate interface GUID.
 - Raw archive indexing can increase disk consumption and needs suitable retention settings.
 
 Planned improvements:
