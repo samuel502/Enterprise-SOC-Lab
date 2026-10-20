@@ -1,5 +1,5 @@
 
-# Enterprise SOC Lab
+# Enterprise Mini-SOC Lab
 
 A hands-on cybersecurity lab designed to simulate attacks, investigate security events, and develop detection capabilities using Wazuh SIEM, Sysmon, and Suricata.
 
