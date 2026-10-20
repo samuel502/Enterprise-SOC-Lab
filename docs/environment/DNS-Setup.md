@@ -78,7 +78,43 @@ echo 'conf-dir=/etc/dnsmasq.d/,*.conf' | sudo tee -a /etc/dnsmasq.conf
 sudo nano /etc/dnsmasq.d/lab.conf
 ```
 
-Paste the configuration in the section below, then save.
+```conf
+# --- bind to the host-only interface and loopback only ---
+interface=eth0
+interface=lo
+bind-interfaces
+listen-address=192.168.23.130
+listen-address=127.0.0.1
+
+# --- deterministic behaviour ---
+no-hosts
+no-resolv
+server=1.1.1.1
+server=8.8.8.8
+
+# --- lab domains resolve to Kali ---
+address=/northwlndtraders.com/192.168.23.130
+address=/northwindtraders.com/192.168.23.130
+address=/mail.northwlndtraders.com/192.168.23.130
+address=/contoso.com/192.168.23.130
+address=/mail.contoso.com/192.168.23.130
+
+# --- MX records ---
+mx-host=northwlndtraders.com,mail.northwlndtraders.com,10
+mx-host=contoso.com,mail.contoso.com,10
+
+# --- SPF and DMARC records ---
+txt-record=northwlndtraders.com,"v=spf1 ip4:192.168.23.130 -all"
+txt-record=_dmarc.northwlndtraders.com,"v=DMARC1; p=none; rua=mailto:dmarc@northwlndtraders.com"
+
+# the "real" supplier domain deliberately does NOT authorise Kali's IP
+txt-record=northwindtraders.com,"v=spf1 ip4:203.0.113.10 -all"
+txt-record=_dmarc.northwindtraders.com,"v=DMARC1; p=quarantine"
+
+# --- DKIM public key, added during the mail phase ---
+# value taken verbatim from /etc/opendkim/keys/northwlndtraders.com/mail.txt
+txt-record=mail._domainkey.northwlndtraders.com,"v=DKIM1; h=sha256; k=rsa; p=<BASE64_PUBLIC_KEY>"
+```
 
 ### 5. Start the resolver
 
@@ -154,48 +190,6 @@ dig google.com +short
 ```
 
 `nameserver 127.0.0.1`, the lab domain resolving, and `google.com` still working. If the last one breaks, forwarding died with it.
-
-## Configuration
-
-**File:** `/etc/dnsmasq.d/lab.conf`
-
-```conf
-# --- bind to the host-only interface and loopback only ---
-interface=eth0
-interface=lo
-bind-interfaces
-listen-address=192.168.23.130
-listen-address=127.0.0.1
-
-# --- deterministic behaviour ---
-no-hosts
-no-resolv
-server=1.1.1.1
-server=8.8.8.8
-
-# --- lab domains resolve to Kali ---
-address=/northwlndtraders.com/192.168.23.130
-address=/northwindtraders.com/192.168.23.130
-address=/mail.northwlndtraders.com/192.168.23.130
-address=/contoso.com/192.168.23.130
-address=/mail.contoso.com/192.168.23.130
-
-# --- MX records ---
-mx-host=northwlndtraders.com,mail.northwlndtraders.com,10
-mx-host=contoso.com,mail.contoso.com,10
-
-# --- SPF and DMARC records ---
-txt-record=northwlndtraders.com,"v=spf1 ip4:192.168.23.130 -all"
-txt-record=_dmarc.northwlndtraders.com,"v=DMARC1; p=none; rua=mailto:dmarc@northwlndtraders.com"
-
-# the "real" supplier domain deliberately does NOT authorise Kali's IP
-txt-record=northwindtraders.com,"v=spf1 ip4:203.0.113.10 -all"
-txt-record=_dmarc.northwindtraders.com,"v=DMARC1; p=quarantine"
-
-# --- DKIM public key, added during the mail phase ---
-# value taken verbatim from /etc/opendkim/keys/northwlndtraders.com/mail.txt
-txt-record=mail._domainkey.northwlndtraders.com,"v=DKIM1; h=sha256; k=rsa; p=<BASE64_PUBLIC_KEY>"
-```
 
 ## Files
 
