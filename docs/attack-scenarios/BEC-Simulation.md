@@ -1,65 +1,93 @@
-
 # BEC Attack Simulation
 
 ## Overview
 
-This lab demonstrates a Business Email Compromise (BEC)-related credential phishing scenario using Kali Linux as the attacker system and Windows 11 as the victim endpoint.
+This lab demonstrates a Business Email Compromise (BEC)-related credential phishing
+scenario using Kali Linux as the attacker system and Windows 11 as the victim endpoint.
 
-The objective was to simulate how a user could be directed to a fraudulent Microsoft 365 login page, submit test credentials, and unknowingly transmit those credentials to an attacker-controlled web server.
-
-The initial browser-based attack simulation was completed successfully. Email-based delivery, endpoint monitoring, and post-exploitation activities remain outside the scope of this initial test.
+The simulation is delivered in phases. **Phase 1** (browser-based access) is complete.
+**Phase 2** (infrastructure realism) is complete. **Phase 3** (email delivery) is in
+progress.
 
 ## Lab Environment
 
 - **Attacker:** Kali Linux VM
 - **Victim:** Windows 11 VM
-- **Network:** VMware NAT
+- **Network:** VMware host-only (`192.168.23.0/24`)
 - **Web Server:** Apache2
 - **Server-Side Processing:** PHP
-- **Monitoring Platform:** Wazuh (integration planned)
+- **DNS:** dnsmasq (local resolver)
+- **Monitoring Platform:** Wazuh (integrated)
 
-All activity was conducted within a controlled virtual lab using test credentials.
+All activity is conducted within a controlled virtual lab using test credentials.
 
 ## Attack Chain
 
+### Phase 1 — Browser-Based Simulation (Complete)
+
 1. **Reconnaissance:** Prepared the simulated target environment.
 2. **Lure Development:** Created a Microsoft 365-themed login page.
-3. **Infrastructure Setup:** Configured Apache2 and a PHP handler to receive form submissions.
-4. **Delivery:** Accessed the phishing page directly from the Windows VM browser for testing.
+3. **Infrastructure Setup:** Configured Apache2 and a PHP handler to receive submissions.
+4. **Delivery:** Accessed the phishing page directly from the Windows VM browser.
 5. **Victim Interaction:** Entered test credentials into the simulated login form.
-6. **Credential Capture:** Submitted the credentials through HTTP POST to `login.php`.
-7. **Redirect:** Redirected the browser to a legitimate Microsoft website after submission.
-8. **Post-Exploitation:** Not performed.
+6. **Credential Capture:** Submitted credentials through HTTP POST to `login.php`.
+7. **Redirect:** Redirected the browser after submission.
+
+### Phase 2 — Infrastructure Realism (Complete)
+
+8. **DNS Infrastructure:** Deployed dnsmasq to serve a lookalike domain, replacing the
+   raw IP address with a plausible hostname.
+9. **Page Rebuild:** Rebuilt the login page as a Microsoft Entra ID SSO screen with a
+   two-stage email-then-password flow.
+10. **Landing Page:** Added a supplier billing portal and invoice.
+
+### Phase 3 — Email Delivery (In Progress)
+
+11. **Mail Infrastructure:** Deploy a local mail server for realistic delivery.
+12. **Message Construction:** Build a business-realistic BEC lure.
+13. **Delivery:** Send the message to the victim mailbox.
+14. **Authentication Analysis:** Examine SPF, DKIM and DMARC outcomes.
+15. **Detection:** Observe what Sysmon, Suricata and Wazuh record.
 
 ## Phishing Infrastructure
 
+### DNS Layer
+
+A local dnsmasq resolver provides the lookalike domain `northwlndtraders.com`, which
+differs from the legitimate `northwindtraders.com` by a single character.
+
+Full detail: [DNS Setup](../environment/DNS-Setup.md)
+
 ### Phishing Page
 
-The simulated login page was hosted on Kali Linux using Apache2.
-
-- **File Location:** `/var/www/html/phishing.html`
-- **Web Server:** Apache2
+- **File Location:** `/var/www/html/invoice/NW-4471/index.html`
+- **Source Location:** `assets/web/phishing.html`
 - **Form Fields:** Email and password
 - **Submission Method:** HTTP POST
 - **Form Handler:** `login.php`
 
-The page used Microsoft 365 branding and a simplified login interface to demonstrate how a familiar-looking authentication page could be used in a phishing scenario.
+The page mimics a Microsoft Entra ID SSO prompt, framed as *"Sign in to continue to
+Northwind Traders."* This framing explains why a supplier's billing portal presents a
+Microsoft login, and mirrors the `login_hint` behaviour of real SSO links by prefilling
+the victim address.
 
-![Phishing Page](../screenshots/phishing-page-full.png)
+The flow is two-stage — email, then password — matching genuine Microsoft
+authentication behaviour.
+
+![Phishing Page](../screenshots/phishing-page-entra.png)
+
+![Two-Stage Login](../screenshots/login-two-stage.png)
 
 ### Form Submission
 
-The HTML form was configured to submit the entered information to the PHP handler running on the Kali Linux server.
-
-The following screenshot documents the form configuration.
+Both fields reside in a single form, so the server receives one POST containing both
+values despite the two-screen presentation.
 
 ![Form Action](../screenshots/form-action.png)
 
 ### Credential Capture
 
-The server-side PHP script processed incoming HTTP POST requests and recorded submitted test data.
-
-The script also recorded information useful for investigating the simulated request, including:
+The PHP handler records the submitted data plus investigation metadata:
 
 - Submitted email address
 - Submitted password
@@ -71,136 +99,25 @@ The script also recorded information useful for investigating the simulated requ
 
 ### Credential Storage
 
-The submitted test data was stored in a local text file named `stolen.txt`.
+Captured data is appended to `/var/www/html/stolen_creds.txt`.
 
-- **File Location:** `/var/www/html/stolen.txt`
-- **Purpose:** Demonstrate server-side capture of submitted test credentials
-- **Initial State:** Empty
-- **Test Result:** Successfully recorded a simulated credential submission
+- **Format:** One block per submission, including timestamp, source IP and user-agent
+- **Purpose:** Demonstrate server-side capture and provide an incident timeline
 
-The following screenshot shows the file before the test.
+![Captured Credentials](../screenshots/captured-creds-v2.png)
 
-![Credentials File](../screenshots/credentials-file.png)
+### Landing Page
 
-The next screenshot shows the captured test information after submission.
+After submission, the handler issues an HTTP 302 redirect to a simulated supplier
+billing portal. This is more realistic than returning the user to the login screen —
+real SSO redirects onward to the target application.
 
-![Captured Credentials](../screenshots/captured-credentials.png)
+![Portal Landing](../screenshots/portal-landing.png)
+
+![Invoice Page](../screenshots/invoice-page.png)
 
 ## Attack Execution
 
 ### Step 1: Access the Phishing Page
 
-The phishing page was accessed from the Windows 11 victim VM using its web browser.
-
-This confirmed that the Windows VM could communicate with the Apache2 server hosted on Kali Linux.
-
-![Victim Access](../screenshots/victim-access.png)
-
-### Step 2: Submit Test Credentials
-
-Test credentials were entered into the simulated Microsoft 365 login form.
-
-The browser submitted the information to the PHP handler using an HTTP POST request.
-
-### Step 3: Verify Credential Capture
-
-The captured information was verified on the Kali Linux server by examining the output stored in `stolen.txt`.
-
-The recorded information confirmed that the form submission reached the server and was processed successfully.
-
-![Captured Credentials](../screenshots/captured-credentials.png)
-
-### Step 4: Redirect the Browser
-
-After processing the submission, the PHP script returned an HTTP redirect to a legitimate Microsoft website.
-
-This demonstrated how a phishing workflow can redirect users after collecting their submitted information.
-
-![Microsoft Redirect](../screenshots/microsoft-redirect.png)
-
-## Email Delivery
-
-Email-based phishing delivery was not part of this initial test.
-
-The page was accessed directly through the Windows VM browser to verify the credential submission and capture process.
-
-A future phase may introduce simulated email delivery to demonstrate a more complete phishing attack chain.
-
-## Detection Opportunities
-
-The following activities provide potential opportunities for security monitoring and investigation.
-
-### Network Activity
-
-- HTTP connections from Windows 11 to the Kali Linux web server
-- HTTP POST requests to the PHP handler
-- Subsequent browser navigation to a Microsoft website
-
-### Endpoint Activity
-
-- Browser process activity
-- Network connections initiated by the browser
-- Potential indicators of suspicious web activity
-
-### Server-Side Evidence
-
-- Apache2 access logs
-- Requests to `login.php`
-- Timestamped test submissions
-- Captured request metadata
-
-These are potential detection and investigation points. Wazuh and Sysmon alerts have not yet been validated for this scenario.
-
-## Mitigation Strategies
-
-### Security Awareness
-
-Educate users to recognize suspicious login pages, unexpected authentication requests, and unfamiliar website addresses.
-
-### Email Security
-
-Use email authentication and filtering mechanisms such as SPF, DKIM, and DMARC to help reduce email spoofing and malicious message delivery.
-
-### Multifactor Authentication
-
-Implement phishing-resistant MFA to reduce the risk associated with credential theft.
-
-### Endpoint Monitoring
-
-Collect browser-related process and network telemetry using Sysmon and Wazuh where supported by the configured logging policies.
-
-### Network Monitoring
-
-Monitor suspicious web requests, unusual destinations, and relevant network connections to support phishing investigations.
-
-## Test Results
-
-| Test | Result |
-|---|---|
-| Apache2 web server hosting | Successful |
-| Windows VM access to phishing page | Successful |
-| HTML form submission | Successful |
-| PHP processing of test credentials | Successful |
-| Test credential storage | Successful |
-| Redirect to Microsoft website | Successful |
-| Email-based delivery | Not tested |
-| Wazuh/Sysmon detection | Pending |
-| Post-exploitation | Not performed |
-
-## Conclusion
-
-The browser-based credential-phishing simulation was completed successfully.
-
-The experiment demonstrated how an attacker-controlled webpage can receive test credentials from a Windows endpoint, record submitted information, and redirect the browser afterward.
-
-This establishes a baseline scenario for the next phase of the Enterprise SOC Lab, where endpoint telemetry and Wazuh alerts will be used to investigate the simulated attack.
-
-## Next Steps
-
-1. Deploy the Wazuh agent on Windows 11.
-2. Install and configure Sysmon.
-3. Configure Wazuh to collect relevant Windows security events.
-4. Repeat the controlled simulation with monitoring enabled.
-5. Investigate the resulting telemetry and determine which activities are observable.
-6. Develop detection rules where appropriate.
-7. Document the investigation and produce a SOC incident report.
+Reached via the lookalike domain rather than a raw IP:
