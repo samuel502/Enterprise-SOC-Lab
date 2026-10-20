@@ -5,8 +5,9 @@
 This lab demonstrates a Business Email Compromise (BEC)-related credential phishing
 scenario using Kali Linux as the attacker system and Windows 11 as the victim endpoint.
 
-The simulation is delivered in phases. Phase 1 (browser-based access) is complete.
-Phase 2 (infrastructure realism) is complete. Phase 3 (email delivery) is in progress.
+The simulation is delivered in phases. Phase 1 (browser-based access) is complete and
+documented below as a baseline. Phase 2 (infrastructure realism) is complete and
+documents what was improved and why. Phase 3 (email delivery) is in progress.
 
 ## Lab Environment
 
@@ -27,45 +28,78 @@ All activity is conducted within a controlled virtual lab using test credentials
 1. Reconnaissance: Prepared the simulated target environment.
 2. Lure Development: Created a Microsoft 365-themed login page.
 3. Infrastructure Setup: Configured Apache2 and a PHP handler to receive submissions.
-4. Delivery: Accessed the phishing page directly from the Windows VM browser.
+4. Delivery: Accessed the phishing page directly from the Windows VM browser by IP.
 5. Victim Interaction: Entered test credentials into the simulated login form.
 6. Credential Capture: Submitted credentials through HTTP POST to login.php.
-7. Redirect: Redirected the browser after submission.
+7. Redirect: Redirected the browser to a public Microsoft page after submission.
 
 #### Phase 1 Evidence
 
 ![Original Phishing Page](../screenshots/phishing-page-full.png)
 
+![Form Action](../screenshots/form-action.png)
+
+![Capture Script](../screenshots/capture-script.png)
+
 ![Credentials File Before Test](../screenshots/credentials-file.png)
 
 ![Captured Credentials](../screenshots/captured-credentials.png)
+
+![Victim Access](../screenshots/victim-access.png)
 
 ![Post-Submission Redirect](../screenshots/microsoft-redirect.png)
 
 ### Phase 2 - Infrastructure Realism (Complete)
 
-8. DNS Infrastructure: Deployed dnsmasq to serve a lookalike domain, replacing the
-   raw IP address with a plausible hostname.
+8. DNS Infrastructure: Deployed dnsmasq to serve a lookalike domain, replacing the raw
+   IP address with a plausible hostname.
 9. Page Rebuild: Rebuilt the login page as a Microsoft Entra ID SSO screen with a
    two-stage email-then-password flow.
-10. Landing Page: Added a supplier billing portal and invoice.
+10. Capture Upgrade: Extended the PHP handler to record timestamp, source IP and
+    User-Agent alongside the submitted credentials.
+11. Landing Page: Added a simulated supplier billing portal and invoice so the victim
+    lands somewhere believable after authentication.
+
+#### Improvements Delivered in Phase 2
+
+| Area | Phase 1 | Phase 2 |
+|---|---|---|
+| Delivery address | Raw IP 192.168.23.130 | Lookalike domain northwlndtraders.com |
+| DNS | Not used | dnsmasq serving A, MX and TXT records |
+| Login page | Single-page Microsoft 365 clone | Two-stage Entra ID SSO clone |
+| Capture log | stolen.txt, credentials only | stolen_creds.txt with timestamp, IP, User-Agent |
+| Post-authentication | Redirect to a public Microsoft page | Redirect to a simulated billing portal with invoice |
+| Email authentication groundwork | None | SPF and DMARC TXT records published |
+
+The Phase 1 setup proved the concept. Phase 2 addresses its weaknesses: a raw IP is
+less convincing than a domain, a single-page form is less convincing than a real SSO
+flow, and credentials without metadata are harder to build a timeline from.
 
 ### Phase 3 - Email Delivery (In Progress)
 
-11. Mail Infrastructure: Deploy a local mail server for realistic delivery.
-12. Message Construction: Build a business-realistic BEC lure.
-13. Delivery: Send the message to the victim mailbox.
-14. Authentication Analysis: Examine SPF, DKIM and DMARC outcomes.
-15. Detection: Observe what Sysmon, Suricata and Wazuh record.
+12. Mail Infrastructure: Deploy a local mail server for realistic delivery.
+13. Message Construction: Build a business-realistic BEC lure.
+14. Delivery: Send the message to the victim mailbox.
+15. Authentication Analysis: Examine SPF, DKIM and DMARC outcomes.
+16. Detection: Observe what Sysmon, Suricata and Wazuh record.
 
-## Phishing Infrastructure
+## Phishing Infrastructure (Current State)
 
 ### DNS Layer
 
 A local dnsmasq resolver provides the lookalike domain northwlndtraders.com, which
 differs from the legitimate northwindtraders.com by a single character.
 
+This replaces the raw-IP delivery used in Phase 1 and publishes the TXT records
+required for later SPF, DKIM and DMARC analysis.
+
 Full detail: [DNS Setup](../environment/DNS-Setup.md)
+
+![dnsmasq configuration](../screenshots/dnsmasq-config.png)
+
+![DNS verification](../screenshots/dns-dig-verification.png)
+
+![Windows DNS configuration](../screenshots/windows-dns-settings.png)
 
 ### Phishing Page
 
@@ -81,7 +115,7 @@ Microsoft login, and mirrors the login_hint behaviour of real SSO links by prefi
 the victim address.
 
 The flow is two-stage - email, then password - matching genuine Microsoft
-authentication behaviour.
+authentication behaviour rather than a single combined form.
 
 ![Phishing Page](../screenshots/phishing-page-entra.png)
 
@@ -90,9 +124,8 @@ authentication behaviour.
 ### Form Submission
 
 Both fields reside in a single form, so the server receives one POST containing both
-values despite the two-screen presentation.
-
-![Form Action](../screenshots/form-action.png)
+values despite the two-screen presentation. The form action is absolute, so the page
+works from any URL path.
 
 ### Credential Capture
 
@@ -104,7 +137,8 @@ The PHP handler records the submitted data plus investigation metadata:
 - Browser user-agent
 - Timestamp
 
-![Capture Script](../screenshots/capture-script.png)
+The timestamp and source IP are deliberate additions over Phase 1. Credentials alone
+prove capture; the metadata provides chronology for the investigation.
 
 ### Credential Storage
 
@@ -118,8 +152,10 @@ Captured data is appended to /var/www/html/stolen_creds.txt.
 ### Landing Page
 
 After submission, the handler issues an HTTP 302 redirect to a simulated supplier
-billing portal. This is more realistic than returning the user to the login screen -
-real SSO redirects onward to the target application.
+billing portal showing the referenced invoice.
+
+This is more realistic than returning the user to the login screen, and closer to real
+SSO behaviour where the user is forwarded onward to the target application.
 
 ![Portal Landing](../screenshots/portal-landing.png)
 
@@ -130,9 +166,10 @@ real SSO redirects onward to the target application.
 ### Step 1: Access the Phishing Page
 
 Reached via the lookalike domain rather than a raw IP:
-http://northwlndtraders.com/invoice/NW-4471
 
-![Victim Access](../screenshots/victim-access.png)
+```
+http://northwlndtraders.com/invoice/NW-4471
+```
 
 ### Step 2: Submit Test Credentials
 
@@ -161,6 +198,8 @@ Two delivery variants are planned using identical message bodies:
 |---|---|---|
 | A | northwindtraders.com (spoofed, unowned) | SPF fail, DKIM fail, DMARC fail |
 | B | northwlndtraders.com (attacker-owned) | SPF pass, DKIM pass, DMARC pass |
+
+This contrast demonstrates both attacker strategies within a single scenario.
 
 ## Detection Opportunities
 
@@ -195,8 +234,8 @@ particularly single-character variations.
 
 ### Email Security
 
-Deploy SPF, DKIM and DMARC with a policy of quarantine or reject. Note that DMARC
-only protects a domain if the legitimate owner publishes it; a lookalike domain under
+Deploy SPF, DKIM and DMARC with a policy of quarantine or reject. Note that DMARC only
+protects a domain if the legitimate owner publishes it; a lookalike domain under
 attacker control will pass all checks.
 
 ### Multifactor Authentication
@@ -232,7 +271,8 @@ infrastructure has been upgraded to a level of realism that mirrors genuine phis
 operations: a lookalike domain served by a controlled resolver, an Entra ID SSO clone,
 and a believable post-authentication landing page.
 
-This establishes the baseline for the email delivery phase.
+This establishes the baseline for the email delivery phase, where the message itself -
+and the authentication controls designed to detect it - become the focus.
 
 ## Next Steps
 
