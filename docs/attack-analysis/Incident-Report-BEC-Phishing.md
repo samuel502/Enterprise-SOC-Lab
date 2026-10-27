@@ -11,7 +11,7 @@
 | Detection source | Suricata → Wazuh (custom rule, signature ID 1000001) |
 | Detection time | 2026-10-26 12:12:08 (local lab time) |
 | Classification | True positive — credential submission over unencrypted HTTP |
-| Severity | Suricata signature severity 1 (high); Wazuh rule level 3 (low — see Recommendations) |
+| Severity | Suricata signature severity 1 (high); Wazuh default rule level 3 (low), elevated to level 12 by a custom rule — see Detection Engineering Notes |
 | Status | Contained in lab; recommendations documented |
 
 ## Executive Summary
@@ -151,10 +151,11 @@ Immediate response actions (as they would apply in a production SOC):
 
 Detection and hardening recommendations:
 
-5. **Raise the alert severity in Wazuh.** The Suricata alert currently maps to Wazuh rule
-   level 3 (low), which risks being overlooked. A custom local rule should raise this
-   specific signature to a high level (e.g., 10–12) so it stands out, without raising all
-   Suricata alerts and creating noise.
+5. **Raise the alert severity in Wazuh (implemented).** By default the Suricata alert maps
+   to Wazuh rule level 3 (low), which risks being overlooked in triage. A custom local rule
+   (ID 100100) was written to elevate this specific signature (1000001) to level 12 (high),
+   so it stands out, without raising all Suricata alerts and creating noise. See Detection
+   Engineering Notes for the rule and its validation.
 6. **Add email telemetry to the SIEM.** Ingesting mail-gateway or mail-server logs would
    bring sender, headers, and authentication verdicts into the SIEM, so phishing can be
    investigated in one place rather than on the mail host.
@@ -192,8 +193,8 @@ attacker IP (`data.dest_ip: 192.168.23.130`) and the lookalike domain
 (`data.http.hostname: northwlndtraders.com`). Searching the indicator, rather than the
 alert, finds any host that contacted the attacker, not only those that triggered a
 detection. Only `WIN11-Client` (192.168.23.129) appeared, confirming no other host was
-affected. The alert's Wazuh rule level was confirmed as 3 (low), supporting
-recommendation #5.
+affected. This search also showed the alert at its default Wazuh rule level 3 (low), which
+motivated the severity elevation documented in Detection Engineering Notes.
 
 Screenshots: `response-firewall-block.png`, `response-page-blocked.png`, `response-siem-scope.png`.
 
@@ -207,6 +208,12 @@ This incident is also a record of building and validating the detection itself.
 - **Control added.** Suricata was integrated with Wazuh and a custom rule (signature ID
   1000001) was written to flag HTTP POST requests containing a password field —
   i.e., credential submission over unencrypted HTTP.
+- **Severity tuned.** By default this Suricata alert mapped to Wazuh rule level 3 (low),
+  which risks being missed in triage (`rule-level-3-default.png`). A custom Wazuh local
+  rule was added to elevate this specific signature to level 12 (high), without raising
+  all Suricata alerts. Validated: the credential-submission alert now fires at rule
+  level 12 under rule ID 100100 (`rule-level-12-elevated.png`). The rule is in the
+  Appendix.
 - **Validation caveat.** During testing, Suricata reported "Engine started" but silently
   failed to log, because it lacked permission to write to its log files when not run with
   administrator privileges. Running Suricata elevated resolved it. Lesson: a sensor
@@ -227,9 +234,9 @@ This incident is also a record of building and validating the detection itself.
   credentials would not be visible to Suricata; detection would then depend on endpoint
   or email-layer controls.
 
-## Appendix — Detection Rule
+## Appendix — Detection Rules
 
-The Suricata signature that produced this alert:
+**Suricata signature** (generates the alert):
 
 ```
 alert http any any -> any any (msg:"SOC LAB - Possible credential submission over unencrypted HTTP"; flow:established,to_server; http.method; content:"POST"; http.request_body; content:"password="; nocase; classtype:policy-violation; sid:1000001; rev:1;)
@@ -238,6 +245,22 @@ alert http any any -> any any (msg:"SOC LAB - Possible credential submission ove
 The rule matches any HTTP POST whose request body contains the literal `password=`
 pattern. It does not require the destination IP to be known in advance, so it generalizes
 to any unencrypted credential submission, not only this attacker.
+
+**Wazuh local rule** (elevates the alert from default level 3 to level 12):
+
+```xml
+<group name="suricata,local,">
+  <rule id="100100" level="12">
+    <if_sid>86601</if_sid>
+    <field name="alert.signature_id">1000001</field>
+    <description>SOC LAB - Credential submission over unencrypted HTTP (elevated severity)</description>
+  </rule>
+</group>
+```
+
+This rule is a child of Wazuh's built-in Suricata alert rule (86601) and matches only the
+custom signature (1000001), so only this specific detection is raised to level 12 — every
+other Suricata alert keeps its default severity.
 
 ---
 
