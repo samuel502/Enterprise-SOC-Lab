@@ -201,6 +201,62 @@ victim mailbox, and Thunderbird connects over IMAP.
 
 Full detail: [Mail Server Setup](../environment/Mail-Server-Setup.md)
 
+### Composing and Sending the Lure
+
+The email body was written as HTML and saved to `~/lure.html` on Kali, then sent with
+`swaks` embedding that file as the message body. Keeping the body in a file leaves the
+markup intact instead of escaping a long HTML string on the command line.
+
+The body is an ordinary supplier-invoice notification. It matches what lands in the
+victim mailbox: invoice `NW-4471`, PO reference `PO-2026-0913`, amount due £4,812.50, due
+24 October 2026, a "View invoice on portal" link to
+`http://northwlndtraders.com/phishing.html`, and a sign-off from Daniel Okafor, Accounts
+Receivable, Northwind Traders Ltd.
+
+```html
+<!-- ~/lure.html -->
+<p>Hi Sarah,</p>
+<p>Hope you're well. Please find our October invoice below — the full PDF is on our
+billing portal, you'll just need to sign in to download it.</p>
+<table>
+  <tr><td>Invoice</td><td><strong>NW-4471</strong></td></tr>
+  <tr><td>PO reference</td><td>PO-2026-0913</td></tr>
+  <tr><td>Amount due</td><td>£4,812.50</td></tr>
+  <tr><td>Due date</td><td>24 October 2026</td></tr>
+</table>
+<p><a href="http://northwlndtraders.com/phishing.html">View invoice on portal</a></p>
+<p>If the PO reference or amount looks off, give me a shout and I'll raise a credit
+note.</p>
+<p>Thanks,<br>Daniel Okafor<br>Accounts Receivable<br>Northwind Traders Ltd</p>
+```
+
+Variant B, the owned domain, was sent with:
+
+```bash
+swaks --server 127.0.0.1 \
+      --to sarah.mitchell@contoso.com \
+      --from accounts@northwlndtraders.com \
+      --h-From 'Northwind Traders - Accounts Receivable <accounts@northwlndtraders.com>' \
+      --h-Subject 'Invoice NW-4471 - Payment Due 24 Oct' \
+      --add-header 'MIME-Version: 1.0' \
+      --add-header 'Content-Type: text/html; charset=UTF-8' \
+      --body ~/lure.html
+```
+
+`--from` sets the envelope sender and `--h-From` sets the visible display name, the same
+two-flag split used in the mail server setup. The two `--add-header` lines mark the body
+as `text/html`, so the client renders the invoice table and link rather than showing raw
+tags.
+
+Variant A is the same command with one change: the sending domain is
+`northwindtraders.com`, the real domain the attacker does not own. With no SPF
+authorisation or DKIM key for it, that variant fails authentication while the body stays
+identical.
+
+![Thunderbird connected](../screenshots/mail-thunderbird-inbox.png)
+
+*The lure delivered to the victim mailbox, confirmed from the Windows endpoint.*
+
 ### Authentication Controls
 
 SPF and DMARC were published as TXT records. A 2048-bit DKIM key was generated and its
