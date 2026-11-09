@@ -17,7 +17,7 @@ The agent collects endpoint security telemetry to support threat detection, inci
 - **Agent Name:** WIN11-Client
 - **Agent ID:** 001
 - **Agent Group:** default
-- **Network:** VMware NAT
+- **Network:** VMware NAT (192.168.23.0/24)
 
 **Note:** The IP address `192.168.23.134` belongs to the Ubuntu server hosting Wazuh in this specific lab. Anyone reproducing this deployment must substitute the IP address of their own Wazuh Manager.
 
@@ -171,4 +171,6 @@ The exact cause of the incomplete initial installation was not determined.
 5. Repeat the controlled attack simulation from Kali Linux.
 6. Investigate the resulting security telemetry and alerts.
 7. Document detection findings and create a SOC incident report.
+
+All of these steps have since been completed. See [Sysmon Configuration](Sysmon-Configuration.md), [Suricata Integration](Suricata-Integration.md) and the [Incident Report](../attack-analysis/Incident-Report-BEC-Phishing.md).
 

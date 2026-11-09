@@ -15,7 +15,7 @@ The simulation was delivered in three phases, all complete:
 
 - Attacker: Kali Linux VM
 - Victim: Windows 11 VM
-- Network: VMware host-only (192.168.23.0/24)
+- Network: VMware NAT (192.168.23.0/24)
 - Web Server: Apache2
 - Server-Side Processing: PHP
 - DNS: dnsmasq (local resolver)
@@ -271,8 +271,11 @@ With all phases complete, the full chain runs as follows.
 - Mail server logs and full message headers
 - Authentication-Results verdicts
 
-Validation is performed against the existing monitoring configuration first, so a genuine
-baseline is established before any rules are written.
+Validation was performed against the existing monitoring configuration first, so a genuine
+baseline was established before any rules were written. Sysmon recorded the browser's
+connection to the attacker server but could not show that credentials were submitted; a
+custom Suricata rule closed that gap. See the
+[Incident Report](../attack-analysis/Incident-Report-BEC-Phishing.md).
 
 ## Mitigation Strategies
 
@@ -313,7 +316,7 @@ SMTP traffic for anomalous destinations.
 | SPF and DMARC verification | Successful |
 | DKIM signing and signature validation | Successful |
 | Phishing email delivery | Successful |
-| Wazuh / Sysmon / Suricata detection | Pending |
+| Wazuh / Sysmon / Suricata detection | Successful (Suricata signature 1000001, Wazuh rule 100100 at level 12) |
 | Post-exploitation | Not performed |
 
 ## Conclusion
@@ -329,7 +332,11 @@ typo.
 
 ## Next Steps
 
-1. Repeat the simulation against the monitoring stack to establish a detection baseline.
-2. Determine which stages are observable and which are gaps.
-3. Develop detection rules for the gaps.
-4. Produce a full SOC incident report with timeline, IOCs and ATT&CK mapping.
+The detection follow-up planned here is complete: the simulation was repeated against the
+monitoring stack, the credential-submission gap was identified and closed with a custom
+Suricata rule, the Wazuh severity was raised to level 12, and the results were written up
+in the [Incident Report](../attack-analysis/Incident-Report-BEC-Phishing.md) with
+timeline, IOCs and ATT&CK mapping.
+
+Remaining: bring mail server logs into the SIEM so the email stage can be investigated
+alongside the network alert.

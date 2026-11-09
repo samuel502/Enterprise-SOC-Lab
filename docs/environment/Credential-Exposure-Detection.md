@@ -19,6 +19,8 @@ During subsequent controlled testing, the rule triggered successfully, and the d
 
 This result demonstrates detection of a risky HTTP behavior, not confirmation that valid credentials were stolen or an actual account was compromised.
 
+The alert initially mapped to Wazuh's default rule level 3, which was identified as too low. A custom Wazuh rule (`100100`) was then added to raise this signature to level 12 (see Section 10).
+
 ## Investigation Information
 
 | Attribute | Details |
@@ -35,8 +37,8 @@ This result demonstrates detection of a risky HTTP behavior, not confirmation th
 | Network inspection | Suricata 8.0.7 |
 | SIEM | Wazuh |
 | Suricata signature ID | 1000001 |
-| Wazuh rule ID | 86601 |
-| Wazuh alert level | 3 |
+| Wazuh rule ID | 86601 (built-in); 100100 (custom, after tuning) |
+| Wazuh alert level | 3 by default; 12 after tuning |
 | Detection outcome | Successful |
 
 ## 1. Objectives
@@ -352,21 +354,22 @@ Suricata and Wazuh use different severity scales.
 
 The low Wazuh rule level may underrepresent the potential risk of credentials being transmitted over unencrypted HTTP.
 
-### Proposed Improvement
+### Implemented Improvement
 
-A future custom Wazuh rule should raise the alert priority for this particular Suricata signature.
-
-Proposed configuration:
+A custom Wazuh rule was written to raise the alert priority for this particular Suricata signature.
 
 ```text
 Suricata signature: 1000001
-Existing Wazuh rule: 86601
-Proposed Wazuh alert level: 10
+Parent Wazuh rule: 86601
+Custom Wazuh rule: 100100
+New Wazuh alert level: 12
 ```
 
-The proposed change should apply only to the credential-exposure signature, not all Suricata events.
+The change applies only to the credential-exposure signature, not all Suricata events. The rule XML is in [Suricata Integration](Suricata-Integration.md) and in the appendix of the [incident report](../attack-analysis/Incident-Report-BEC-Phishing.md#appendix--detection-rules).
 
-**Status: Planned, not yet implemented.**
+**Status: Implemented and validated.** Retesting confirmed the alert fires at rule level 12 under rule ID `100100`.
+
+![Wazuh alert elevated to level 12 by rule 100100](../screenshots/rule-level-12-elevated.png)
 
 ## 11. Detection Timeline
 
@@ -384,7 +387,8 @@ The investigation progressed through the following phases:
 | 8 | Retesting | Custom Suricata rule triggered |
 | 9 | Wazuh Discover verification | Detection event found |
 | 10 | Wazuh Threat Hunting verification | Security alert confirmed |
-| 11 | Severity review | Wazuh level 3 identified for future tuning |
+| 11 | Severity review | Wazuh level 3 identified as too low |
+| 12 | Severity tuning | Custom rule `100100` raised the alert to level 12 |
 
 This is a sequence of investigation activities rather than a second-by-second attack timeline.
 
@@ -401,6 +405,8 @@ The simulated scenario is relevant to the following MITRE ATT&CK technique:
 The broader scenario involves a deceptive login page. The exact ATT&CK phishing subtechnique depends on the initial delivery method, which is not established by the Suricata HTTP alert alone.
 
 The HTTP submission alert itself detects a network request pattern, not the entire phishing technique.
+
+The later email-delivered version of the attack is mapped in full in the [incident report](../attack-analysis/Incident-Report-BEC-Phishing.md#mitre-attck-mapping).
 
 No additional post-compromise techniques, such as persistence or command-and-control, were demonstrated in this investigation.
 
@@ -438,13 +444,13 @@ The Suricata event appeared in both Discover and Threat Hunting.
 
 The processing pipeline from network packet inspection to SIEM alerting was successfully validated.
 
-### Finding 5 — Alert Prioritization Requires Tuning
+### Finding 5 — Alert Prioritization Required Tuning
 
-**Status:** Improvement identified
+**Status:** Resolved
 
-The alert was assigned Wazuh rule level 3.
+The alert was initially assigned Wazuh rule level 3.
 
-A targeted higher-priority rule is proposed to improve analyst visibility and prioritization.
+A targeted custom rule (`100100`) now raises it to level 12, improving analyst visibility without changing the severity of other Suricata alerts.
 
 ### Finding 6 — Operational Deployment Is Not Yet Complete
 
@@ -470,10 +476,6 @@ For a real-world alert indicating possible credential exposure over HTTP, an ana
 In this controlled lab, the event was generated using dummy credentials and did not require real-world account remediation.
 
 ## 15. Future Detection Improvements
-
-### Wazuh Alert Tuning
-
-Create and validate a targeted Wazuh rule that elevates signature `1000001` from rule level 3 to level 10.
 
 ### Persistent Suricata Operation
 
@@ -507,6 +509,8 @@ The alert was processed by Wazuh and became visible in Threat Hunting.
 
 The project demonstrates an iterative detection-engineering workflow:
 
-**Baseline monitoring → Detection gap → New telemetry source → Custom rule → Retesting → Confirmed security alert → Severity improvement plan**
+**Baseline monitoring → Detection gap → New telemetry source → Custom rule → Retesting → Confirmed security alert → Severity tuned (level 3 to 12)**
 
-Future work will focus on alert prioritization, automatic background monitoring, and broader detection coverage.
+The same detection was used in the [incident report](../attack-analysis/Incident-Report-BEC-Phishing.md) for the full email-delivered attack.
+
+Future work will focus on automatic background monitoring, false-positive evaluation, and broader detection coverage.

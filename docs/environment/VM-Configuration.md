@@ -10,12 +10,13 @@ Three-VM architecture for BEC (Business Email Compromise) attack simulation and 
   - RAM: 4 GB
   - CPU: 4 cores
   - Storage: 64 GB
-  - Network: NAT network
+  - Network: VMware NAT (192.168.23.0/24), `192.168.23.129`
 - **Software:**
   - Windows 11 Pro
-  - Microsoft 365
-  - Outlook
+  - Thunderbird (victim mail client)
   - Sysmon (v15+)
+  - Wazuh agent 4.14.8
+  - Suricata 8.0.7 with Npcap 1.89
   - PowerShell 5.1+
 - **Purpose:** Phishing target, credential harvesting victim
 
@@ -24,13 +25,13 @@ Three-VM architecture for BEC (Business Email Compromise) attack simulation and 
   - RAM: 2 GB
   - CPU: 4 cores
   - Storage: 60 GB
-  - Network: NAT network
+  - Network: VMware NAT (192.168.23.0/24), `192.168.23.130`
 - **Software:**
   - Kali Linux 2024.x
-  - Metasploit Framework
-  - Social Engineering Toolkit (SET)
   - Python 3.x
-  - Apache2
+  - Apache2 and PHP
+  - dnsmasq (lookalike domain DNS)
+  - Postfix, Dovecot, OpenDKIM and OpenDMARC (mail infrastructure)
   - Wireshark
   - tcpdump
 - **Purpose:** Attack simulation, credential capture
@@ -40,11 +41,9 @@ Three-VM architecture for BEC (Business Email Compromise) attack simulation and 
   - RAM: 6 GB
   - CPU: 4 cores
   - Storage: 100 GB
-  - Network: NAT network
+  - Network: VMware NAT (192.168.23.0/24), `192.168.23.134`
 - **Software:**
-  - Wazuh SIEM (v4.x)
-  - Elasticsearch
-  - Kibana
+  - Wazuh SIEM (v4.x): manager, indexer and dashboard (all-in-one install)
   - Filebeat
 - **Purpose:** Log collection, alert monitoring, investigation
 
@@ -55,4 +54,5 @@ Three-VM architecture for BEC (Business Email Compromise) attack simulation and 
 - **Network Monitoring**: Yes - Wireshark and tcpdump available on Kali VM for traffic analysis
 - **Credential Usage**: Confirmed - using only test/fake credentials
 - **Traffic Encryption**: No - Phishing page uses HTTP (not HTTPS) for form submission
-- **VM Isolation**: All VMs on NAT network with controlled internet access
+- **VM Isolation**: No - All VMs run on VMware NAT (192.168.23.0/24) and reach the internet through the host. This is fine for a detection lab using test credentials. A stricter host-only or isolated network would be the right choice when detonating real malware, so it cannot reach the internet.
+- **Victim DNS**: The Windows VM's DNS points at the attacker's dnsmasq on Kali so the lookalike domain resolves. This is a lab stand-in for public registration of the domain; a real victim would resolve it through normal public DNS, not the attacker's server. See [DNS Setup](DNS-Setup.md).

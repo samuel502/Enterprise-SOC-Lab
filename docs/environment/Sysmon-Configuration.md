@@ -21,7 +21,7 @@ This integration supports future SOC investigations involving controlled attack 
 - **Agent Name:** WIN11-Client
 - **Agent ID:** 001
 - **Wazuh Server:** Ubuntu Server 22.04 LTS
-- **Network:** VMware NAT
+- **Network:** VMware NAT (192.168.23.0/24)
 
 ## Sysmon Installation
 
@@ -208,13 +208,10 @@ The current deployment uses Sysmon's initial configuration. Additional tuning ma
 | Sysmon event channel configured in Wazuh | Completed |
 | Sysmon Event ID 1 in Wazuh | Confirmed |
 | Specific Notepad event identified in Wazuh | Not confirmed |
-| Attack simulation detection | Pending |
+| Attack simulation detection | Completed (connection recorded; credential submission needed Suricata) |
 
 ## Next Steps
 
 1. Review and tune Sysmon configuration for additional security telemetry.
-2. Repeat the controlled phishing simulation from Kali Linux against the Windows 11 VM.
-3. Record the attack timeline and relevant system activity.
-4. Examine Wazuh alerts and Sysmon events for evidence of the simulation.
-5. Identify detection successes and visibility gaps.
-6. Produce a professional SOC incident investigation report based on the collected evidence.
+
+The phishing simulation has since been repeated against this setup. Sysmon Event ID 3 recorded the browser's connection to Kali, but Sysmon does not inspect packet contents, so it could not show that credentials were submitted. That gap led to the [Suricata integration](Suricata-Integration.md). The investigation is documented in [HTTP Credential Exposure Detection](Credential-Exposure-Detection.md) and the [Incident Report](../attack-analysis/Incident-Report-BEC-Phishing.md).

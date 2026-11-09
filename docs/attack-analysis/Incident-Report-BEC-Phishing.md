@@ -5,7 +5,7 @@
 | Report ID | IR-2026-001 |
 | Date of investigation | 26 October 2026 |
 | Analyst | Samuel Nadel |
-| Environment | Enterprise Mini-SOC Lab (isolated, authorized, test data only) |
+| Environment | Enterprise Mini-SOC Lab (controlled, authorized, test data only) |
 | Affected host | WIN11-Client (192.168.23.129) |
 | Attacker host | Kali Linux (192.168.23.130) |
 | Detection source | Suricata → Wazuh (custom rule, signature ID 1000001) |
@@ -78,7 +78,9 @@ redirect target in this alert. It did not generate a separate alert, because the
 rule triggers only on a credential submission (a POST containing a password field), not
 on an ordinary page load.
 
-Screenshots: `alert-document-details-1.png`, `alert-document-details-2.png`.
+![Alert document details (1 of 2)](../screenshots/alert-document-details-1.png)
+
+![Alert document details (2 of 2)](../screenshots/alert-document-details-2.png)
 
 ## Indicators of Compromise (IOCs)
 
@@ -196,7 +198,11 @@ detection. Only `WIN11-Client` (192.168.23.129) appeared, confirming no other ho
 affected. This search also showed the alert at its default Wazuh rule level 3 (low), which
 motivated the severity elevation documented in Detection Engineering Notes.
 
-Screenshots: `response-firewall-block.png`, `response-page-blocked.png`, `response-siem-scope.png`.
+![Firewall rule blocking the attacker host](../screenshots/response-firewall-block.png)
+
+![Phishing page no longer reachable after the block](../screenshots/response-page-blocked.png)
+
+![SIEM scoping search by attacker IP](../screenshots/response-siem-scope.png)
 
 ## Detection Engineering Notes
 
@@ -220,6 +226,12 @@ This incident is also a record of building and validating the detection itself.
   reporting "started" is not proof it is working; log output must be verified at the
   source (confirming `eve.json` was being written) before trusting the pipeline.
 
+![Alert elevated to level 12 by rule 100100](../screenshots/rule-level-12-elevated.png)
+
+The full build of this detection is documented in
+[HTTP Credential Exposure Detection](../environment/Credential-Exposure-Detection.md) and
+[Suricata Integration](../environment/Suricata-Integration.md).
+
 ## Limitations and Next Steps
 
 - **No email telemetry in the SIEM.** The mail server is not a SIEM data source in this
@@ -233,6 +245,13 @@ This incident is also a record of building and validating the detection itself.
 - **Plaintext HTTP only.** The detection relies on unencrypted traffic. Over HTTPS the
   credentials would not be visible to Suricata; detection would then depend on endpoint
   or email-layer controls.
+- **NAT network.** The VMs ran on VMware NAT and could reach the internet through the
+  host. That is fine for a detection lab using test credentials; detonating real malware
+  would call for a stricter host-only or isolated network so it cannot reach the internet.
+- **Lab DNS in place of public registration.** The victim's DNS was pointed at the
+  attacker's dnsmasq so the lookalike domain would resolve. This stands in for public
+  registration of the domain; a real victim would resolve it through normal public DNS,
+  not the attacker's server.
 
 ## Appendix — Detection Rules
 
@@ -264,5 +283,5 @@ other Suricata alert keeps its default severity.
 
 ---
 
-*This exercise was conducted in an isolated, authorized lab environment using test
+*This exercise was conducted in a controlled, authorized lab environment using test
 credentials, for defensive security education.*

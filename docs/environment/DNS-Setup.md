@@ -4,7 +4,7 @@
 
 This document describes the local DNS infrastructure built to support the phishing simulation. It gives the campaign a realistic domain name instead of a raw IP address, and provides the record types required for the later email authentication work.
 
-The resolver runs on the Kali attacker VM and serves only the isolated lab network.
+The resolver runs on the Kali attacker VM and serves only the lab network (192.168.23.0/24).
 
 The guide is written to be followed from a standing start. Every command is explained, and every step says what you should see before you move on.
 
@@ -28,6 +28,8 @@ A small DNS server on the Kali VM that:
 - publishes the SPF, DMARC and DKIM records the email phase depends on
 
 The Windows VM is then told to use this server instead of the normal one.
+
+**Lab limitation:** pointing the victim's DNS at the attacker's dnsmasq is a lab stand-in for public registration of the lookalike domain. A real victim resolves the domain through normal public DNS, not through the attacker's server. In this lab it also had a side effect: with its DNS pointed at Kali, the Windows VM's internet access was unreliable and its clock sync failed.
 
 ## Domain Design
 
@@ -67,7 +69,7 @@ Before changing anything, confirm three things: the network card name, that noth
 ip -4 a
 ```
 
-This lists your network interfaces and their IPv4 addresses. You are looking for the host-only interface — in this lab it is `eth0` with the address `192.168.23.130`. Write down the exact interface name; you will need it in step 4.
+This lists your network interfaces and their IPv4 addresses. You are looking for the lab network interface — in this lab it is `eth0` with the address `192.168.23.130`. Write down the exact interface name; you will need it in step 4.
 
 ```bash
 sudo ss -ulpn | grep ':53'
@@ -137,7 +139,7 @@ sudo nano /etc/dnsmasq.d/lab.conf
 `nano` is a simple text editor. It opens the file, creating it if it does not exist. Type or paste the following, then save.
 
 ```conf
-# --- bind to the host-only interface and loopback only ---
+# --- bind to the lab interface and loopback only ---
 interface=eth0
 interface=lo
 bind-interfaces

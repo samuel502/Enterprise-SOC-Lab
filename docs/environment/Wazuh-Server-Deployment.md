@@ -14,7 +14,7 @@ The server acts as the central monitoring platform, collecting and analyzing sec
 - **RAM:** 6 GB
 - **CPU:** 4 virtual CPUs
 - **Storage:** 100 GB
-- **Network:** VMware NAT (192.168.x.x/24)
+- **Network:** VMware NAT (192.168.23.0/24)
 
 ## Wazuh Components Installed
 
@@ -78,7 +78,8 @@ The following screenshot documents access to the Wazuh dashboard from the Window
 The Ubuntu server uses VMware NAT networking, allowing communication between the virtual machines and the Windows host.
 
 - **Network Type:** NAT
-- **Subnet:** 192.168.x.x/24
+- **Subnet:** 192.168.23.0/24
+- **Server IP:** 192.168.23.134
 - **Server Role:** Centralized security monitoring
 - **Dashboard Access:** HTTPS (port 443)
 - **Agent Communication:** TCP port 1514
@@ -92,7 +93,7 @@ The Wazuh server is intended to collect security telemetry from the Windows 11 e
 - The dashboard uses HTTPS with a self-signed certificate.
 - Private lab addresses are used for communication between virtual machines.
 - Attack simulations are performed in a controlled virtual environment.
-- Wazuh agents will be configured to forward endpoint security telemetry to the server.
+- Wazuh agents forward endpoint security telemetry to the server (see [Wazuh Agent Deployment](Wazuh-Agent-Deployment.md)).
 
 ## Next Steps
 
@@ -102,4 +103,6 @@ The Wazuh server is intended to collect security telemetry from the Windows 11 e
 4. Verify endpoint connectivity and event ingestion.
 5. Execute controlled attack simulations from Kali Linux.
 6. Analyze generated alerts and document the detection and incident response process.
+
+All of these steps have since been completed. See [Wazuh Agent Deployment](Wazuh-Agent-Deployment.md), [Sysmon Configuration](Sysmon-Configuration.md) and the [Incident Report](../attack-analysis/Incident-Report-BEC-Phishing.md).
 

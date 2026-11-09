@@ -19,7 +19,7 @@ This document describes the installation, configuration, and validation of Suric
 | Suricata | Version 8.0.7 |
 | Packet capture | Npcap 1.89 |
 | Wazuh agent | Version 4.14.8, agent ID `001` |
-| Virtual network | VMware NAT |
+| Virtual network | VMware NAT (`192.168.23.0/24`) |
 
 ## Architecture
 
@@ -261,7 +261,25 @@ rule.id: 86601
 rule.level: 3
 ```
 
-Wazuh rule level 3 is distinct from Suricata's severity 1. A targeted Wazuh severity increase is planned but **has not yet been applied**.
+Wazuh rule level 3 is distinct from Suricata's severity 1. Level 3 is low for a credential-exposure alert and risks being overlooked in triage, so the severity was tuned in Wazuh (below).
+
+### Severity Tuning — Custom Wazuh Rule
+
+A custom Wazuh local rule was added as a child of the built-in Suricata rule `86601`. It matches only signature `1000001` and raises it to level 12, so every other Suricata alert keeps its default severity:
+
+```xml
+<group name="suricata,local,">
+  <rule id="100100" level="12">
+    <if_sid>86601</if_sid>
+    <field name="alert.signature_id">1000001</field>
+    <description>SOC LAB - Credential submission over unencrypted HTTP (elevated severity)</description>
+  </rule>
+</group>
+```
+
+Retesting confirmed the credential-submission alert now fires at rule level 12 under rule ID `100100`:
+
+![Wazuh alert elevated to level 12 by rule 100100](../screenshots/rule-level-12-elevated.png)
 
 ### Evidence — Earlier Sysmon Network Visibility
 
@@ -282,6 +300,7 @@ This confirmed network-connection telemetry but did not, by itself, indicate cre
 | Missing `threshold.config` | Warning was nonfatal during successful validation and capture |
 | Initial flow events without HTTP alert | A subsequent controlled browser test generated the expected HTTP detection |
 | Archived event vs. security alert | Verified both Discover (`wazuh-archives-*`) and Threat Hunting (`wazuh-alerts-*`) |
+| "Engine started" but nothing logged | Suricata lacked permission to write its log files when not run as administrator; running it elevated resolved it. Confirm `eve.json` is being written before trusting the pipeline |
 
 ## 10. Results
 
@@ -295,7 +314,7 @@ This confirmed network-connection telemetry but did not, by itself, indicate cre
 | Archived Suricata events in Discover | Verified |
 | Simulated HTTP credential submission detected | Verified |
 | Wazuh Threat Hunting alert | Verified, rule `86601`, level 3 |
-| High-priority Wazuh custom rule | Pending |
+| High-priority Wazuh custom rule | Verified, rule `100100`, level 12 |
 | Automatic background Suricata startup | Pending |
 | Broader maintained ruleset and tuning | Pending |
 
@@ -311,12 +330,11 @@ This confirmed network-connection telemetry but did not, by itself, indicate cre
 
 Planned improvements:
 
-1. Create a targeted Wazuh rule to elevate signature `1000001` from Wazuh level 3 to level 10, then retest.
-2. Configure Suricata to start automatically in the background.
-3. Evaluate false positives and other credential-form formats.
-4. Add and tune a maintained Suricata ruleset where appropriate.
-5. Correlate Suricata alerts with Sysmon Event IDs 1 and 3 for a fuller attack timeline.
+1. Configure Suricata to start automatically in the background.
+2. Evaluate false positives and other credential-form formats.
+3. Add and tune a maintained Suricata ruleset where appropriate.
+4. Correlate Suricata alerts with Sysmon Event IDs 1 and 3 for a fuller attack timeline.
 
 ## Conclusion
 
-The Enterprise SOC Lab now correlates endpoint telemetry with an application-layer network detection. The controlled HTTP login-form submission triggered Suricata signature `1000001`, reached Wazuh, and appeared as a security alert in Threat Hunting. The portable installation instructions above separate this lab's recorded network-adapter identity from the steps other users should follow on their own systems.
+The Enterprise SOC Lab now correlates endpoint telemetry with an application-layer network detection. The controlled HTTP login-form submission triggered Suricata signature `1000001`, reached Wazuh, and appeared as a security alert in Threat Hunting. A custom Wazuh rule (`100100`) now raises that alert from the default level 3 to level 12. The detection is used in the [incident report](../attack-analysis/Incident-Report-BEC-Phishing.md) for the full email-delivered attack. The portable installation instructions above separate this lab's recorded network-adapter identity from the steps other users should follow on their own systems.

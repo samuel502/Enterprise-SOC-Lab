@@ -4,7 +4,7 @@
 
 This document describes the local mail infrastructure built to deliver the phishing email realistically, and the authentication controls configured to inspect it.
 
-Everything runs on the Kali attacker VM inside the isolated lab network. No public mail relay is involved, so the DNS records that govern SPF, DKIM and DMARC stay fully under our control.
+Everything runs on the Kali attacker VM inside the lab network. No public mail relay is involved, so the DNS records that govern SPF, DKIM and DMARC stay fully under our control.
 
 The guide is written to be followed from a standing start. Every command is explained, and every step says what you should see before you move on.
 
@@ -397,7 +397,7 @@ No output means the signature verifies correctly.
 
 ### Step 13 — Connect the victim mail client
 
-On the **Windows** VM. The VM has no internet access, so fetch the installer from Kali first.
+On the **Windows** VM. With its DNS pointed at Kali's dnsmasq, the VM's internet access is unreliable, so fetch the installer from Kali first.
 
 On Kali:
 
